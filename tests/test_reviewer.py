@@ -10,6 +10,7 @@ from code_reviewer.reviewer import (
     ReviewIssue,
     Severity,
     QuotaExceededError,
+    ServiceUnavailableError,
 )
 
 
@@ -245,18 +246,20 @@ class TestReviewDiff:
         config = mock_client.models.generate_content.call_args.kwargs["config"]
         assert "한국어" not in config.system_instruction
 
-    def test_raises_quota_exceeded_after_429_retries(self, monkeypatch):
+    def test_raises_service_unavailable_after_503_retries(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "test-key")
         from google.genai.errors import ClientError
 
-        err = ClientError(429, {"error": {"code": 429, "message": "quota exceeded"}})
+        err = ClientError(503, {"error": {"code": 503, "message": "unavailable"}})
         mock_client = MagicMock()
         mock_client.models.generate_content.side_effect = err
 
         with patch("code_reviewer.reviewer.genai.Client", return_value=mock_client), \
              patch("code_reviewer.reviewer.time.sleep"):
-            with pytest.raises(QuotaExceededError):
+            with pytest.raises(ServiceUnavailableError):
                 review_diff("diff")
+
+        assert mock_client.models.generate_content.call_count == 4
 
     def test_non_retryable_error_not_retried(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "test-key")

@@ -1,3 +1,4 @@
+import re
 import shutil
 import stat
 import subprocess
@@ -111,3 +112,24 @@ def is_installed() -> bool:
         return False
     hook_path = git_dir / "hooks" / "pre-commit"
     return hook_path.exists() and HOOK_MARKER in hook_path.read_text(encoding="utf-8")
+
+
+def get_config() -> dict | None:
+    """Return parsed hook settings or None if not installed."""
+    git_dir = _find_git_dir()
+    if git_dir is None:
+        return None
+    hook_path = git_dir / "hooks" / "pre-commit"
+    if not hook_path.exists():
+        return None
+    content = hook_path.read_text(encoding="utf-8")
+    if HOOK_MARKER not in content:
+        return None
+
+    model_match = re.search(r'--model\s+(\S+)', content)
+    lang_match = re.search(r'--lang\s+(\S+)', content)
+    return {
+        "model": model_match.group(1) if model_match else "gemini-2.5-flash",
+        "lang": lang_match.group(1) if lang_match else "en",
+        "block_on_high": "--block-on-high" in content,
+    }

@@ -12,9 +12,14 @@ from google.genai.errors import ClientError
 MAX_DIFF_BYTES = 120_000  # ~30k tokens
 MAX_RETRIES = 3
 _RETRY_BACKOFF = [30, 60, 90]  # seconds between attempts
+REQUEST_TIMEOUT = 60_000  # milliseconds
 
 
 class QuotaExceededError(RuntimeError):
+    pass
+
+
+class ServiceUnavailableError(RuntimeError):
     pass
 
 _SYSTEM_PROMPT_BASE = """\
@@ -129,7 +134,10 @@ def review_diff(diff: str, model: str = "gemini-2.5-flash", lang: str = "en") ->
         diff = encoded[:MAX_DIFF_BYTES].decode("utf-8", errors="ignore")
         truncated = True
 
-    client = genai.Client(api_key=api_key)
+    client = genai.Client(
+        api_key=api_key,
+        http_options={"timeout": REQUEST_TIMEOUT},
+    )
     for attempt in range(MAX_RETRIES + 1):
         try:
             response = client.models.generate_content(
@@ -146,8 +154,11 @@ def review_diff(diff: str, model: str = "gemini-2.5-flash", lang: str = "en") ->
                 time.sleep(_RETRY_BACKOFF[attempt])
             elif e.code == 429:
                 raise QuotaExceededError(
-                    "Gemini API 무료 한도에 도달했습니다. 잠시 후 다시 시도하거나 "
-                    "https://aistudio.google.com 에서 한도를 확인하세요."
+                    "Gemini API free quota exhausted."
+                ) from e
+            elif e.code == 503:
+                raise ServiceUnavailableError(
+                    "Gemini API is temporarily unavailable."
                 ) from e
             else:
                 raise

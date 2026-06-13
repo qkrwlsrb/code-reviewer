@@ -54,17 +54,19 @@ def review(
             "commit_blocked":   "Commit blocked",
             "high_found":       "HIGH severity issue(s) found.",
             "fix_hint":         "Fix the issues or commit with [bold]git commit --no-verify[/bold] to skip.",
-            "quota_exceeded":   "Gemini API free tier quota reached. Review skipped.\nCheck your usage at https://aistudio.google.com",
+            "quota_exceeded":        "Gemini API free tier quota reached. Review skipped.\nCheck your usage at https://aistudio.google.com",
+            "service_unavailable":   "Gemini API is temporarily unavailable. Review skipped.\nThe commit will proceed normally.",
         },
         "ko": {
-            "nothing_staged":   "스테이징된 변경사항이 없습니다 — 리뷰를 건너뜁니다.",
-            "reviewing":        "staged 변경사항 리뷰 중...",
-            "error":            "오류",
-            "unexpected_error": "리뷰 중 예상치 못한 오류",
-            "commit_blocked":   "커밋 차단됨",
-            "high_found":       "HIGH 심각도 이슈가 발견됐습니다.",
-            "fix_hint":         "이슈를 수정하거나 [bold]git commit --no-verify[/bold]로 건너뛰세요.",
-            "quota_exceeded":   "Gemini API 무료 한도에 도달했습니다. 리뷰를 건너뜁니다.\n한도 확인: https://aistudio.google.com",
+            "nothing_staged":        "스테이징된 변경사항이 없습니다 — 리뷰를 건너뜁니다.",
+            "reviewing":             "staged 변경사항 리뷰 중...",
+            "error":                 "오류",
+            "unexpected_error":      "리뷰 중 예상치 못한 오류",
+            "commit_blocked":        "커밋 차단됨",
+            "high_found":            "HIGH 심각도 이슈가 발견됐습니다.",
+            "fix_hint":              "이슈를 수정하거나 [bold]git commit --no-verify[/bold]로 건너뛰세요.",
+            "quota_exceeded":        "Gemini API 무료 한도에 도달했습니다. 리뷰를 건너뜁니다.\n한도 확인: https://aistudio.google.com",
+            "service_unavailable":   "Gemini API를 일시적으로 사용할 수 없습니다. 리뷰를 건너뜁니다.\n커밋은 정상 진행됩니다.",
         },
     }
     m = _msg.get(lang, _msg["en"])
@@ -84,6 +86,9 @@ def review(
             review_result = reviewer.review_diff(diff, model=model, lang=lang)
         except reviewer.QuotaExceededError:
             console.print(f"[yellow]⚠[/yellow] {m['quota_exceeded']}")
+            raise typer.Exit(0)
+        except reviewer.ServiceUnavailableError:
+            console.print(f"[yellow]⚠[/yellow] {m['service_unavailable']}")
             raise typer.Exit(0)
         except RuntimeError as exc:
             console.print(f"[red]{m['error']}:[/red] {exc}")
@@ -156,6 +161,12 @@ def hook_status():
 
     if hook.is_installed():
         console.print("[green]✓[/green] Pre-commit hook is installed.")
+        config = hook.get_config()
+        if config:
+            lang_label = "Korean" if config["lang"] == "ko" else "English"
+            console.print(f"[dim]  Model: {config['model']}  ·  Language: {lang_label}[/dim]")
+            block_label = "[yellow]enabled[/yellow]" if config["block_on_high"] else "[dim]disabled[/dim]"
+            console.print(f"  Block on HIGH: {block_label}")
     else:
         console.print("[dim]Pre-commit hook is not installed.[/dim]")
         console.print("Run [bold]cr install-hook[/bold] to enable.")
