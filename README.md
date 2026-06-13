@@ -50,20 +50,41 @@ git add <파일>
 cr review
 ```
 
-출력 예시:
+**이슈 발견 시:**
 
 ```
-─────────────────────── cr · Code Review ───────────────────────
-┌──── src/app.py:42  ✗ HIGH  SECURITY ───────────────────────────┐
-│ SQL query built with string interpolation                      │
-│ User input is concatenated directly into the SQL query,        │
-│ allowing an attacker to inject arbitrary SQL.                  │
-│                                                                │
-│ Suggestion: Use parameterized queries or an ORM.               │
-└────────────────────────────────────────────────────────────────┘
+────────────────────────── cr · Code Review ───────────────────────────────
+┌─────────────────── app.py:8  ✗ HIGH  SECURITY ────────────────────────────┐
+│ SQL Injection Vulnerability                                               │
+│ The get_user function constructs an SQL query by directly concatenating   │
+│ user-supplied input. This allows attackers to execute arbitrary SQL.      │
+│                                                                           │
+│ Suggestion: Use parameterized queries instead:                            │
+│ cursor.execute("SELECT * FROM users WHERE username = ?", (username,))     │
+└───────────────────────────────────────────────────────────────────────────┘
+┌─────────────────── app.py:26  ⚠ MEDIUM  BUG ──────────────────────────────┐
+│ Unsafe Division (Division by Zero)                                        │
+│ The calculate function performs division without validating the divisor.  │
+│ If b is zero, this will raise a ZeroDivisionError.                        │
+│                                                                           │
+│ Suggestion: Validate that b != 0 before dividing.                         │
+└───────────────────────────────────────────────────────────────────────────┘
 
-Summary: One critical SQL injection vulnerability detected.
-Issues: 1 HIGH
+Summary: Multiple security vulnerabilities and a division-by-zero bug found.
+Issues: 1 HIGH  ·  1 MEDIUM
+
+Severity — HIGH: 보안·크래시(즉시 수정)  MEDIUM: 버그·성능(수정 권장)  LOW: 나쁜 관행(고려)  INFO: 선택적 개선
+```
+
+**이슈 없을 시:**
+
+```
+────────────────────────── cr · Code Review ───────────────────────────────
+┌──────────────────────────── ✓ Clean ──────────────────────────────────────┐
+│ No issues detected. Code looks good.                                      │
+└───────────────────────────────────────────────────────────────────────────┘
+
+Severity — HIGH: 보안·크래시(즉시 수정)  MEDIUM: 버그·성능(수정 권장)  LOW: 나쁜 관행(고려)  INFO: 선택적 개선
 ```
 
 #### pre-commit 훅
@@ -167,20 +188,41 @@ git add <files>
 cr review
 ```
 
-Example output:
+**Issues found:**
 
 ```
-─────────────────────── cr · Code Review ───────────────────────
-┌──── src/app.py:42  ✗ HIGH  SECURITY ───────────────────────────┐
-│ SQL query built with string interpolation                      │
-│ User input is concatenated directly into the SQL query,        │
-│ allowing an attacker to inject arbitrary SQL.                  │
-│                                                                │
-│ Suggestion: Use parameterized queries or an ORM.               │
-└────────────────────────────────────────────────────────────────┘
+────────────────────────── cr · Code Review ───────────────────────────────
+┌─────────────────── app.py:8  ✗ HIGH  SECURITY ────────────────────────────┐
+│ SQL Injection Vulnerability                                               │
+│ The get_user function constructs an SQL query by directly concatenating   │
+│ user-supplied input. This allows attackers to execute arbitrary SQL.      │
+│                                                                           │
+│ Suggestion: Use parameterized queries instead:                            │
+│ cursor.execute("SELECT * FROM users WHERE username = ?", (username,))     │
+└───────────────────────────────────────────────────────────────────────────┘
+┌─────────────────── app.py:26  ⚠ MEDIUM  BUG ──────────────────────────────┐
+│ Unsafe Division (Division by Zero)                                        │
+│ The calculate function performs division without validating the divisor.  │
+│ If b is zero, this will raise a ZeroDivisionError.                        │
+│                                                                           │
+│ Suggestion: Validate that b != 0 before dividing.                         │
+└───────────────────────────────────────────────────────────────────────────┘
 
-Summary: One critical SQL injection vulnerability detected.
-Issues: 1 HIGH
+Summary: Multiple security vulnerabilities and a division-by-zero bug found.
+Issues: 1 HIGH  ·  1 MEDIUM
+
+Severity — HIGH: 보안·크래시(즉시 수정)  MEDIUM: 버그·성능(수정 권장)  LOW: 나쁜 관행(고려)  INFO: 선택적 개선
+```
+
+**No issues:**
+
+```
+────────────────────────── cr · Code Review ───────────────────────────────
+┌──────────────────────────── ✓ Clean ──────────────────────────────────────┐
+│ No issues detected. Code looks good.                                      │
+└───────────────────────────────────────────────────────────────────────────┘
+
+Severity — HIGH: 보안·크래시(즉시 수정)  MEDIUM: 버그·성능(수정 권장)  LOW: 나쁜 관행(고려)  INFO: 선택적 개선
 ```
 
 #### Pre-commit hook
