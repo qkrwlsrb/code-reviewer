@@ -1,3 +1,4 @@
+import shutil
 import stat
 import subprocess
 import sys
@@ -18,12 +19,27 @@ def _find_git_dir() -> Path | None:
 
 
 def _cr_executable() -> str:
-    """Return the cr executable co-located with the running Python."""
+    """Return the cr executable path, preferring the global install over a venv."""
+    in_venv = hasattr(sys, "real_prefix") or (
+        hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix
+    )
+
+    if in_venv:
+        # Look in the base (global) Python Scripts first
+        base_scripts = Path(sys.base_prefix) / "Scripts"
+        for name in ("cr", "cr.exe"):
+            candidate = base_scripts / name
+            if candidate.exists():
+                return _to_posix_path(str(candidate))
+
+    # Co-located with the current Python executable
     bin_dir = Path(sys.executable).parent
     for name in ("cr", "cr.exe"):
         candidate = bin_dir / name
         if candidate.exists():
-            return str(candidate)
+            return _to_posix_path(str(candidate))
+
+    # Last resort: let the shell find it via PATH
     return "cr"
 
 
@@ -36,13 +52,12 @@ def _to_posix_path(p: str) -> str:
 
 
 def _build_hook(cr_path: str, block_on_high: bool, model: str, lang: str) -> str:
-    posix = _to_posix_path(cr_path)
     flags = f" --model {model} --lang {lang}"
     if block_on_high:
         flags += " --block-on-high"
     return f"""#!/bin/sh
 {HOOK_MARKER}
-"{posix}" review{flags}
+"{cr_path}" review{flags}
 """
 
 
