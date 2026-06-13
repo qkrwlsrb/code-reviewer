@@ -97,10 +97,18 @@ cr review
 cr install-hook
 ```
 
+> **언어 설정**: 훅은 설치 시점의 언어 설정을 저장합니다. `--lang`을 지정하지 않으면 기본값인 영어로 출력됩니다. 한국어로 출력하려면 설치 시 반드시 `--lang ko`를 함께 지정하세요.
+>
+> ```sh
+> cr install-hook --lang ko
+> ```
+>
+> 설치 후에는 `git commit`마다 자동으로 한국어로 리뷰가 출력됩니다. 언어를 변경하려면 훅을 제거하고 원하는 언어로 재설치하면 됩니다.
+
 HIGH 이슈 발생 시 커밋을 차단하려면:
 
 ```sh
-cr install-hook --block-on-high
+cr install-hook --lang ko --block-on-high
 ```
 
 훅 제거:
@@ -235,10 +243,19 @@ Install the hook so every `git commit` triggers a review automatically:
 cr install-hook
 ```
 
+> **Language setting**: The hook saves the language at install time. Without `--lang`, it defaults to English. To get output in a different language, specify `--lang` when installing:
+>
+> ```sh
+> cr install-hook --lang ko   # Korean
+> cr install-hook --lang en   # English (default)
+> ```
+>
+> To change the language later, uninstall and reinstall the hook with the desired `--lang`.
+
 To block commits when HIGH severity issues are found:
 
 ```sh
-cr install-hook --block-on-high
+cr install-hook --lang ko --block-on-high
 ```
 
 Remove the hook:
