@@ -26,6 +26,8 @@ AI 기반 터미널 코드 리뷰어. staged된 git 변경사항을 Google Gemin
 ### 설치
 
 ```sh
+git clone https://github.com/qkrwlsrb/code-reviewer
+cd code-reviewer
 pip install .
 ```
 
@@ -174,6 +176,8 @@ AI-powered code reviewer that runs in your terminal. Analyzes staged git changes
 ### Installation
 
 ```sh
+git clone https://github.com/qkrwlsrb/code-reviewer
+cd code-reviewer
 pip install .
 ```
 
