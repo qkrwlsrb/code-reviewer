@@ -52,39 +52,41 @@ cr review
 
 **이슈 발견 시:**
 
-```
-────────────────────────── cr · Code Review ───────────────────────────────
-┌─────────────────── app.py:8  ✗ HIGH  SECURITY ────────────────────────────┐
-│ SQL Injection Vulnerability                                               │
-│ The get_user function constructs an SQL query by directly concatenating   │
-│ user-supplied input. This allows attackers to execute arbitrary SQL.      │
-│                                                                           │
-│ Suggestion: Use parameterized queries instead:                            │
-│ cursor.execute("SELECT * FROM users WHERE username = ?", (username,))     │
-└───────────────────────────────────────────────────────────────────────────┘
-┌─────────────────── app.py:26  ⚠ MEDIUM  BUG ──────────────────────────────┐
-│ Unsafe Division (Division by Zero)                                        │
-│ The calculate function performs division without validating the divisor.  │
-│ If b is zero, this will raise a ZeroDivisionError.                        │
-│                                                                           │
-│ Suggestion: Validate that b != 0 before dividing.                         │
-└───────────────────────────────────────────────────────────────────────────┘
-
-Summary: Multiple security vulnerabilities and a division-by-zero bug found.
-Issues: 1 HIGH  ·  1 MEDIUM
-
-Severity — HIGH: 보안·크래시(즉시 수정)  MEDIUM: 버그·성능(수정 권장)  LOW: 나쁜 관행(고려)  INFO: 선택적 개선
-```
-
-**이슈 없을 시:**
+**`cr review --lang ko` — 이슈 발견 시:**
 
 ```
-────────────────────────── cr · Code Review ───────────────────────────────
-┌──────────────────────────── ✓ Clean ──────────────────────────────────────┐
-│ No issues detected. Code looks good.                                      │
-└───────────────────────────────────────────────────────────────────────────┘
+─────────────────────────────── cr · 코드 리뷰 ────────────────────────────────
+┌──────────────────── app.py:1  ✗ HIGH  SECURITY ──────────────────────────────┐
+│ 소스 코드에 하드코딩된 비밀번호                                              │
+│ 소스 코드에 직접 비밀번호를 하드코딩하는 것은 매우 위험한 보안 취약점입니다. │
+│ 코드 저장소에 노출되어 무단 접근의 위험을 초래합니다.                        │
+│                                                                              │
+│ 제안: 환경 변수, 보안 비밀 관리 서비스, 또는 안전하게 구성된 설정 파일을     │
+│ 통해 관리하세요. 절대로 코드에 직접 포함하지 마십시오.                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────── app.py:4  ⚠ MEDIUM  BUG ─────────────────────────────────┐
+│ 0으로 나누기 예외 처리 누락                                                  │
+│ divide 함수는 b가 0일 경우 ZeroDivisionError를 발생시킬 수 있습니다.          │
+│                                                                              │
+│ 제안: b가 0인지 확인하는 로직을 추가하세요.                                  │
+│ 예: if b == 0: raise ValueError("0으로 나눌 수 없습니다")                    │
+└──────────────────────────────────────────────────────────────────────────────┘
 
-Severity — HIGH: 보안·크래시(즉시 수정)  MEDIUM: 버그·성능(수정 권장)  LOW: 나쁜 관행(고려)  INFO: 선택적 개선
+요약: 하드코딩된 비밀번호와 0으로 나누기 오류에 대한 잠재적 취약점이 있습니다.
+발견된 이슈: 1 HIGH  ·  1 MEDIUM
+
+심각도 — HIGH: 보안·크래시(즉시 수정)  MEDIUM: 버그·성능(수정 권장)  LOW: 나쁜 관행(고려)  INFO: 선택적 개선
+```
+
+**`cr review --lang ko` — 이슈 없을 시:**
+
+```
+─────────────────────────────── cr · 코드 리뷰 ────────────────────────────────
+┌────────────────────────────── ✓ 이상 없음 ───────────────────────────────────┐
+│ 발견된 이슈가 없습니다.                                                      │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+심각도 — HIGH: 보안·크래시(즉시 수정)  MEDIUM: 버그·성능(수정 권장)  LOW: 나쁜 관행(고려)  INFO: 선택적 개선
 ```
 
 #### pre-commit 훅
@@ -188,41 +190,41 @@ git add <files>
 cr review
 ```
 
-**Issues found:**
+**`cr review` — Issues found:**
 
 ```
-────────────────────────── cr · Code Review ───────────────────────────────
-┌─────────────────── app.py:8  ✗ HIGH  SECURITY ────────────────────────────┐
-│ SQL Injection Vulnerability                                               │
-│ The get_user function constructs an SQL query by directly concatenating   │
-│ user-supplied input. This allows attackers to execute arbitrary SQL.      │
-│                                                                           │
-│ Suggestion: Use parameterized queries instead:                            │
-│ cursor.execute("SELECT * FROM users WHERE username = ?", (username,))     │
-└───────────────────────────────────────────────────────────────────────────┘
-┌─────────────────── app.py:26  ⚠ MEDIUM  BUG ──────────────────────────────┐
-│ Unsafe Division (Division by Zero)                                        │
-│ The calculate function performs division without validating the divisor.  │
-│ If b is zero, this will raise a ZeroDivisionError.                        │
-│                                                                           │
-│ Suggestion: Validate that b != 0 before dividing.                         │
-└───────────────────────────────────────────────────────────────────────────┘
+──────────────────────────── cr · Code Review ─────────────────────────────────
+┌──────────────────── app.py:1  ✗ HIGH  SECURITY ──────────────────────────────┐
+│ Hardcoded Password in Source Code                                            │
+│ A password is hardcoded directly in the source code. This is a critical      │
+│ security vulnerability as it exposes credentials in the repository.          │
+│                                                                              │
+│ Suggestion: Use environment variables or a secrets manager instead.          │
+│ Never hardcode credentials in source code.                                   │
+└──────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────── app.py:4  ⚠ MEDIUM  BUG ─────────────────────────────────┐
+│ Missing Division by Zero Handling                                            │
+│ The divide function will raise ZeroDivisionError if b is zero.               │
+│                                                                              │
+│ Suggestion: Add a zero check before dividing.                                │
+│ e.g. if b == 0: raise ValueError("Cannot divide by zero")                   │
+└──────────────────────────────────────────────────────────────────────────────┘
 
-Summary: Multiple security vulnerabilities and a division-by-zero bug found.
+Summary: Hardcoded password and missing division-by-zero handling detected.
 Issues: 1 HIGH  ·  1 MEDIUM
 
-Severity — HIGH: 보안·크래시(즉시 수정)  MEDIUM: 버그·성능(수정 권장)  LOW: 나쁜 관행(고려)  INFO: 선택적 개선
+Severity — HIGH: Security·Crash (fix immediately)  MEDIUM: Bug·Performance (fix recommended)  LOW: Bad practice (consider)  INFO: Optional
 ```
 
-**No issues:**
+**`cr review` — No issues:**
 
 ```
-────────────────────────── cr · Code Review ───────────────────────────────
-┌──────────────────────────── ✓ Clean ──────────────────────────────────────┐
-│ No issues detected. Code looks good.                                      │
-└───────────────────────────────────────────────────────────────────────────┘
+──────────────────────────── cr · Code Review ─────────────────────────────────
+┌───────────────────────────────── ✓ Clean ────────────────────────────────────┐
+│ No issues detected.                                                          │
+└──────────────────────────────────────────────────────────────────────────────┘
 
-Severity — HIGH: 보안·크래시(즉시 수정)  MEDIUM: 버그·성능(수정 권장)  LOW: 나쁜 관행(고려)  INFO: 선택적 개선
+Severity — HIGH: Security·Crash (fix immediately)  MEDIUM: Bug·Performance (fix recommended)  LOW: Bad practice (consider)  INFO: Optional
 ```
 
 #### Pre-commit hook
