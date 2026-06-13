@@ -9,6 +9,7 @@ from code_reviewer.reviewer import (
     ReviewResult,
     ReviewIssue,
     Severity,
+    QuotaExceededError,
 )
 
 
@@ -190,7 +191,7 @@ class TestReviewDiff:
         assert mock_sleep.call_args_list[0].args[0] == 30
         assert mock_sleep.call_args_list[1].args[0] == 60
 
-    def test_raises_after_max_retries_exceeded(self, monkeypatch):
+    def test_raises_quota_error_after_max_429_retries(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "test-key")
         from google.genai.errors import ClientError
 
@@ -200,7 +201,7 @@ class TestReviewDiff:
 
         with patch("code_reviewer.reviewer.genai.Client", return_value=mock_client), \
              patch("code_reviewer.reviewer.time.sleep"):
-            with pytest.raises(ClientError):
+            with pytest.raises(QuotaExceededError):
                 review_diff("diff")
 
         # 1 initial + 3 retries = 4 total attempts
@@ -243,6 +244,19 @@ class TestReviewDiff:
 
         config = mock_client.models.generate_content.call_args.kwargs["config"]
         assert "한국어" not in config.system_instruction
+
+    def test_raises_quota_exceeded_after_429_retries(self, monkeypatch):
+        monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+        from google.genai.errors import ClientError
+
+        err = ClientError(429, {"error": {"code": 429, "message": "quota exceeded"}})
+        mock_client = MagicMock()
+        mock_client.models.generate_content.side_effect = err
+
+        with patch("code_reviewer.reviewer.genai.Client", return_value=mock_client), \
+             patch("code_reviewer.reviewer.time.sleep"):
+            with pytest.raises(QuotaExceededError):
+                review_diff("diff")
 
     def test_non_retryable_error_not_retried(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "test-key")

@@ -54,6 +54,7 @@ def review(
             "commit_blocked":   "Commit blocked",
             "high_found":       "HIGH severity issue(s) found.",
             "fix_hint":         "Fix the issues or commit with [bold]git commit --no-verify[/bold] to skip.",
+            "quota_exceeded":   "Gemini API free tier quota reached. Review skipped.\nCheck your usage at https://aistudio.google.com",
         },
         "ko": {
             "nothing_staged":   "스테이징된 변경사항이 없습니다 — 리뷰를 건너뜁니다.",
@@ -63,6 +64,7 @@ def review(
             "commit_blocked":   "커밋 차단됨",
             "high_found":       "HIGH 심각도 이슈가 발견됐습니다.",
             "fix_hint":         "이슈를 수정하거나 [bold]git commit --no-verify[/bold]로 건너뛰세요.",
+            "quota_exceeded":   "Gemini API 무료 한도에 도달했습니다. 리뷰를 건너뜁니다.\n한도 확인: https://aistudio.google.com",
         },
     }
     m = _msg.get(lang, _msg["en"])
@@ -80,6 +82,9 @@ def review(
     with console.status(f"[bold]{m['reviewing']}[/bold]", spinner="dots"):
         try:
             review_result = reviewer.review_diff(diff, model=model, lang=lang)
+        except reviewer.QuotaExceededError:
+            console.print(f"[yellow]⚠[/yellow] {m['quota_exceeded']}")
+            raise typer.Exit(0)
         except RuntimeError as exc:
             console.print(f"[red]{m['error']}:[/red] {exc}")
             raise typer.Exit(0)

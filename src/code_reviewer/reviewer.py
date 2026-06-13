@@ -13,6 +13,10 @@ MAX_DIFF_BYTES = 120_000  # ~30k tokens
 MAX_RETRIES = 3
 _RETRY_BACKOFF = [30, 60, 90]  # seconds between attempts
 
+
+class QuotaExceededError(RuntimeError):
+    pass
+
 _SYSTEM_PROMPT_BASE = """\
 You are a senior code reviewer specializing in security vulnerabilities and code quality.
 Analyze the provided git diff and return findings as JSON only — no prose, no markdown fences.
@@ -140,6 +144,11 @@ def review_diff(diff: str, model: str = "gemini-2.5-flash", lang: str = "en") ->
         except ClientError as e:
             if e.code in (429, 503) and attempt < MAX_RETRIES:
                 time.sleep(_RETRY_BACKOFF[attempt])
+            elif e.code == 429:
+                raise QuotaExceededError(
+                    "Gemini API 무료 한도에 도달했습니다. 잠시 후 다시 시도하거나 "
+                    "https://aistudio.google.com 에서 한도를 확인하세요."
+                ) from e
             else:
                 raise
 
