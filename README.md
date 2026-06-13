@@ -106,12 +106,12 @@ cr hook-status
 
 ### 심각도 기준
 
-| 레벨 | 기준 |
-|---|---|
-| **HIGH** | 보안 취약점, 인젝션 위험, 인증 우회, 데이터 노출, 크래시 |
-| **MEDIUM** | 로직 버그, 위험한 API 오용, 성능 문제, 유효성 검사 누락 |
-| **LOW** | 사소한 나쁜 관행, 중복 코드, 불명확한 네이밍 |
-| **INFO** | 선택적 개선 사항, 스타일 제안 |
+| 레벨 | 의미 | 대응 |
+|---|---|---|
+| **HIGH** | 보안 취약점, 인젝션 위험, 인증 우회, 데이터 노출, 크래시 | 즉시 수정 |
+| **MEDIUM** | 로직 버그, 위험한 API 오용, 성능 문제, 유효성 검사 누락 | 수정 권장 |
+| **LOW** | 사소한 나쁜 관행, 중복 코드, 불명확한 네이밍 | 고려 |
+| **INFO** | 선택적 개선 사항, 스타일 제안 | 선택 사항 |
 
 ### 개발
 
@@ -223,12 +223,12 @@ cr hook-status
 
 ### Severity levels
 
-| Level | Meaning |
-|---|---|
-| **HIGH** | Security vulnerabilities, injection risks, auth bypass, data exposure, crashes |
-| **MEDIUM** | Logic bugs, dangerous API misuse, performance pitfalls, missing validation |
-| **LOW** | Minor bad practices, redundant code, unclear naming |
-| **INFO** | Optional improvements, stylistic suggestions |
+| Level | Meaning | Action |
+|---|---|---|
+| **HIGH** | Security vulnerabilities, injection risks, auth bypass, data exposure, crashes | Fix immediately |
+| **MEDIUM** | Logic bugs, dangerous API misuse, performance pitfalls, missing validation | Recommended fix |
+| **LOW** | Minor bad practices, redundant code, unclear naming | Consider fixing |
+| **INFO** | Optional improvements, stylistic suggestions | Optional |
 
 ### Development
 

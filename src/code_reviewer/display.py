@@ -20,6 +20,17 @@ _ICONS = {
 }
 
 
+def _print_legend() -> None:
+    console.print(
+        "[dim]Severity — "
+        "[red]HIGH[/red]: 보안·크래시(즉시 수정)  "
+        "[yellow]MEDIUM[/yellow]: 버그·성능(수정 권장)  "
+        "[cyan]LOW[/cyan]: 나쁜 관행(고려)  "
+        "INFO: 선택적 개선[/dim]"
+    )
+    console.print()
+
+
 def display_review(result: ReviewResult) -> None:
     console.print()
     console.rule("[bold white]cr · Code Review[/bold white]")
@@ -36,6 +47,7 @@ def display_review(result: ReviewResult) -> None:
             )
         )
         console.print()
+        _print_legend()
         return
 
     for issue in result.issues:
@@ -45,7 +57,7 @@ def display_review(result: ReviewResult) -> None:
         location = f"[dim]{issue.file}:{issue.line}  [/dim]" if issue.file else ""
         title_line = (
             f"{location}"
-            f"[bold {color}]{icon} {issue.severity}[/bold {color}]"
+            f"[bold {color}]{icon} {issue.severity.value}[/bold {color}]"
             f"  [dim]{issue.category}[/dim]"
         )
 
@@ -72,3 +84,4 @@ def display_review(result: ReviewResult) -> None:
     console.print(f"\n[bold]Summary:[/bold] {result.summary}")
     console.print("Issues: " + "  ·  ".join(parts))
     console.print()
+    _print_legend()
