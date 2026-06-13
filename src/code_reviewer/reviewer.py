@@ -1,12 +1,16 @@
 import json
 import os
+import time
 from dataclasses import dataclass, field
 from enum import Enum
 
 from google import genai
 from google.genai import types as genai_types
+from google.genai.errors import ClientError
 
 MAX_DIFF_BYTES = 120_000  # ~30k tokens
+MAX_RETRIES = 3
+_RETRY_BACKOFF = [30, 60, 90]  # seconds between attempts
 
 SYSTEM_PROMPT = """\
 You are a senior code reviewer specializing in security vulnerabilities and code quality.
@@ -101,14 +105,22 @@ def review_diff(diff: str, model: str = "gemini-2.5-flash") -> ReviewResult:
         truncated = True
 
     client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(
-        model=model,
-        contents=f"```diff\n{diff}\n```",
-        config=genai_types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            max_output_tokens=2048,
-        ),
-    )
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            response = client.models.generate_content(
+                model=model,
+                contents=f"```diff\n{diff}\n```",
+                config=genai_types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                    max_output_tokens=2048,
+                ),
+            )
+            break
+        except ClientError as e:
+            if e.code == 429 and attempt < MAX_RETRIES:
+                time.sleep(_RETRY_BACKOFF[attempt])
+            else:
+                raise
 
     result = _parse_response(response.text)
     result.truncated = truncated

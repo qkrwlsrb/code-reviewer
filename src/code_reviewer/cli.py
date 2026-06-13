@@ -33,6 +33,10 @@ def review(
         False, "--block-on-high",
         help="Exit 1 if any HIGH severity issue is found (blocks the commit).",
     ),
+    model: str = typer.Option(
+        "gemini-2.5-flash", "--model", "-m",
+        help="Gemini model to use for review.",
+    ),
 ):
     """Review staged changes via AI and print findings to the terminal."""
     from code_reviewer import display, reviewer
@@ -49,7 +53,7 @@ def review(
 
     with console.status("[bold]Reviewing staged changes...[/bold]", spinner="dots"):
         try:
-            review_result = reviewer.review_diff(diff)
+            review_result = reviewer.review_diff(diff, model=model)
         except RuntimeError as exc:
             console.print(f"[red]Error:[/red] {exc}")
             raise typer.Exit(0)  # Don't block commit on tool errors
