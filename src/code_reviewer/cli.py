@@ -45,6 +45,28 @@ def review(
     """Review staged changes via AI and print findings to the terminal."""
     from code_reviewer import display, reviewer
 
+    _msg = {
+        "en": {
+            "nothing_staged":   "Nothing staged — skipping review.",
+            "reviewing":        "Reviewing staged changes...",
+            "error":            "Error",
+            "unexpected_error": "Unexpected error during review",
+            "commit_blocked":   "Commit blocked",
+            "high_found":       "HIGH severity issue(s) found.",
+            "fix_hint":         "Fix the issues or commit with [bold]git commit --no-verify[/bold] to skip.",
+        },
+        "ko": {
+            "nothing_staged":   "스테이징된 변경사항이 없습니다 — 리뷰를 건너뜁니다.",
+            "reviewing":        "staged 변경사항 리뷰 중...",
+            "error":            "오류",
+            "unexpected_error": "리뷰 중 예상치 못한 오류",
+            "commit_blocked":   "커밋 차단됨",
+            "high_found":       "HIGH 심각도 이슈가 발견됐습니다.",
+            "fix_hint":         "이슈를 수정하거나 [bold]git commit --no-verify[/bold]로 건너뛰세요.",
+        },
+    }
+    m = _msg.get(lang, _msg["en"])
+
     result = subprocess.run(
         ["git", "diff", "--staged"],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
@@ -52,27 +74,27 @@ def review(
     diff = result.stdout.strip()
 
     if not diff:
-        console.print("[dim]Nothing staged — skipping review.[/dim]")
+        console.print(f"[dim]{m['nothing_staged']}[/dim]")
         raise typer.Exit(0)
 
-    with console.status("[bold]Reviewing staged changes...[/bold]", spinner="dots"):
+    with console.status(f"[bold]{m['reviewing']}[/bold]", spinner="dots"):
         try:
             review_result = reviewer.review_diff(diff, model=model, lang=lang)
         except RuntimeError as exc:
-            console.print(f"[red]Error:[/red] {exc}")
-            raise typer.Exit(0)  # Don't block commit on tool errors
+            console.print(f"[red]{m['error']}:[/red] {exc}")
+            raise typer.Exit(0)
         except Exception as exc:
-            console.print(f"[red]Unexpected error during review:[/red] {exc}")
+            console.print(f"[red]{m['unexpected_error']}:[/red] {exc}")
             raise typer.Exit(0)
 
-    display.display_review(review_result)
+    display.display_review(review_result, lang=lang)
 
     if block_on_high:
         high_count = sum(1 for i in review_result.issues if i.severity.value == "HIGH")
         if high_count:
             console.print(
-                f"[bold red]Commit blocked:[/bold red] {high_count} HIGH severity issue(s) found.\n"
-                "Fix the issues or commit with [bold]git commit --no-verify[/bold] to skip."
+                f"[bold red]{m['commit_blocked']}:[/bold red] {high_count} {m['high_found']}\n"
+                f"{m['fix_hint']}"
             )
             raise typer.Exit(1)
 
