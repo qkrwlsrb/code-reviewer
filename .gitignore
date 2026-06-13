@@ -9,3 +9,5 @@ build/
 .pytest_cache/
 .coverage
 htmlcov/
+repomix-output.*
+.agents/

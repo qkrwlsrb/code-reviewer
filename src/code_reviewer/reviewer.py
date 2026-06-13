@@ -3,7 +3,8 @@ import os
 from dataclasses import dataclass, field
 from enum import Enum
 
-import anthropic
+from google import genai
+from google.genai import types as genai_types
 
 MAX_DIFF_BYTES = 120_000  # ~30k tokens
 
@@ -85,12 +86,12 @@ def _parse_response(text: str) -> ReviewResult:
     return ReviewResult(issues=issues, summary=data.get("summary", ""))
 
 
-def review_diff(diff: str, model: str = "claude-haiku-4-5-20251001") -> ReviewResult:
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+def review_diff(diff: str, model: str = "gemini-2.5-flash") -> ReviewResult:
+    api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise RuntimeError(
-            "ANTHROPIC_API_KEY is not set. "
-            "Export it with: set ANTHROPIC_API_KEY=sk-..."
+            "GEMINI_API_KEY is not set. "
+            "Export it with: set GEMINI_API_KEY=your-key"
         )
 
     truncated = False
@@ -99,14 +100,16 @@ def review_diff(diff: str, model: str = "claude-haiku-4-5-20251001") -> ReviewRe
         diff = encoded[:MAX_DIFF_BYTES].decode("utf-8", errors="ignore")
         truncated = True
 
-    client = anthropic.Anthropic(api_key=api_key)
-    message = client.messages.create(
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
         model=model,
-        max_tokens=2048,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": f"```diff\n{diff}\n```"}],
+        contents=f"```diff\n{diff}\n```",
+        config=genai_types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            max_output_tokens=2048,
+        ),
     )
 
-    result = _parse_response(message.content[0].text)
+    result = _parse_response(response.text)
     result.truncated = truncated
     return result
