@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from code_reviewer.reviewer import (
     _parse_response,
+    _build_system_prompt,
     review_diff,
     ReviewResult,
     ReviewIssue,
@@ -85,6 +86,18 @@ class TestParseResponse:
         }
         result = _parse_response(json.dumps(data))
         assert result.issues[0].line == 0
+
+    def test_handles_trailing_text_after_json(self):
+        data = {"summary": "ok", "issues": []}
+        text = json.dumps(data) + "\n\nSome extra prose Gemini added."
+        result = _parse_response(text)
+        assert result.summary == "ok"
+
+    def test_handles_json_embedded_in_prose(self):
+        data = {"summary": "ok", "issues": []}
+        text = f"Here is the review:\n{json.dumps(data)}\nHope this helps."
+        result = _parse_response(text)
+        assert result.summary == "ok"
 
     def test_multiple_severities(self):
         data = {
@@ -210,6 +223,26 @@ class TestReviewDiff:
 
         assert result.summary == "ok"
         assert mock_sleep.call_count == 1
+
+    def test_lang_ko_passed_to_system_prompt(self, monkeypatch):
+        monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+        mock_client = _make_mock_client(json.dumps({"summary": "", "issues": []}))
+
+        with patch("code_reviewer.reviewer.genai.Client", return_value=mock_client):
+            review_diff("diff", lang="ko")
+
+        config = mock_client.models.generate_content.call_args.kwargs["config"]
+        assert "한국어" in config.system_instruction
+
+    def test_lang_en_has_no_extra_instruction(self, monkeypatch):
+        monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+        mock_client = _make_mock_client(json.dumps({"summary": "", "issues": []}))
+
+        with patch("code_reviewer.reviewer.genai.Client", return_value=mock_client):
+            review_diff("diff", lang="en")
+
+        config = mock_client.models.generate_content.call_args.kwargs["config"]
+        assert "한국어" not in config.system_instruction
 
     def test_non_retryable_error_not_retried(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "test-key")

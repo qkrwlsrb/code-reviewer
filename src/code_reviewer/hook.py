@@ -35,16 +35,22 @@ def _to_posix_path(p: str) -> str:
     return p
 
 
-def _build_hook(cr_path: str, block_on_high: bool) -> str:
+def _build_hook(cr_path: str, block_on_high: bool, model: str, lang: str) -> str:
     posix = _to_posix_path(cr_path)
-    flag = " --block-on-high" if block_on_high else ""
+    flags = f" --model {model} --lang {lang}"
+    if block_on_high:
+        flags += " --block-on-high"
     return f"""#!/bin/sh
 {HOOK_MARKER}
-"{posix}" review{flag}
+"{posix}" review{flags}
 """
 
 
-def install(block_on_high: bool = False) -> Path:
+def install(
+    block_on_high: bool = False,
+    model: str = "gemini-2.5-flash",
+    lang: str = "en",
+) -> Path:
     git_dir = _find_git_dir()
     if git_dir is None:
         raise RuntimeError("Not inside a git repository.")
@@ -53,7 +59,6 @@ def install(block_on_high: bool = False) -> Path:
     hooks_dir.mkdir(exist_ok=True)
     hook_path = hooks_dir / "pre-commit"
 
-    # Preserve existing non-managed hook content
     if hook_path.exists():
         existing = hook_path.read_text(encoding="utf-8")
         if HOOK_MARKER not in existing:
@@ -62,7 +67,10 @@ def install(block_on_high: bool = False) -> Path:
                 "created by code-reviewer. Remove it manually before installing."
             )
 
-    hook_path.write_text(_build_hook(_cr_executable(), block_on_high), encoding="utf-8")
+    hook_path.write_text(
+        _build_hook(_cr_executable(), block_on_high, model, lang),
+        encoding="utf-8",
+    )
     hook_path.chmod(hook_path.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
     return hook_path
 

@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -12,7 +13,7 @@ MAX_DIFF_BYTES = 120_000  # ~30k tokens
 MAX_RETRIES = 3
 _RETRY_BACKOFF = [30, 60, 90]  # seconds between attempts
 
-SYSTEM_PROMPT = """\
+_SYSTEM_PROMPT_BASE = """\
 You are a senior code reviewer specializing in security vulnerabilities and code quality.
 Analyze the provided git diff and return findings as JSON only — no prose, no markdown fences.
 
@@ -40,6 +41,15 @@ Severity rules:
 
 Only report real issues. If the diff is clean, return an empty issues array.\
 """
+
+_LANG_INSTRUCTIONS = {
+    "ko": "\n\n'description'과 'suggestion' 필드의 값을 한국어(Korean)로 작성하세요.",
+    "en": "",
+}
+
+
+def _build_system_prompt(lang: str) -> str:
+    return _SYSTEM_PROMPT_BASE + _LANG_INSTRUCTIONS.get(lang, "")
 
 
 class Severity(str, Enum):
@@ -69,12 +79,23 @@ class ReviewResult:
 
 def _parse_response(text: str) -> ReviewResult:
     raw = text.strip()
-    # Strip accidental markdown fences
+
+    # Strip markdown fences
     if raw.startswith("```"):
         parts = raw.split("```")
         raw = parts[1].lstrip("json").strip() if len(parts) >= 2 else raw
 
-    data = json.loads(raw)
+    # raw_decode tolerates trailing text after the JSON object
+    try:
+        decoder = json.JSONDecoder()
+        data, _ = decoder.raw_decode(raw)
+    except json.JSONDecodeError:
+        # Fallback: find the first {...} block in the text
+        match = re.search(r'\{[\s\S]*\}', raw)
+        if not match:
+            raise
+        data = json.loads(match.group())
+
     issues = [
         ReviewIssue(
             severity=Severity(i.get("severity", "INFO")),
@@ -90,7 +111,7 @@ def _parse_response(text: str) -> ReviewResult:
     return ReviewResult(issues=issues, summary=data.get("summary", ""))
 
 
-def review_diff(diff: str, model: str = "gemini-2.5-flash") -> ReviewResult:
+def review_diff(diff: str, model: str = "gemini-2.5-flash", lang: str = "en") -> ReviewResult:
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise RuntimeError(
@@ -111,7 +132,7 @@ def review_diff(diff: str, model: str = "gemini-2.5-flash") -> ReviewResult:
                 model=model,
                 contents=f"```diff\n{diff}\n```",
                 config=genai_types.GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT,
+                    system_instruction=_build_system_prompt(lang),
                     max_output_tokens=2048,
                 ),
             )

@@ -37,6 +37,10 @@ def review(
         "gemini-2.5-flash", "--model", "-m",
         help="Gemini model to use for review.",
     ),
+    lang: str = typer.Option(
+        "en", "--lang", "-l",
+        help="Language for review output: 'en' (English) or 'ko' (Korean).",
+    ),
 ):
     """Review staged changes via AI and print findings to the terminal."""
     from code_reviewer import display, reviewer
@@ -53,7 +57,7 @@ def review(
 
     with console.status("[bold]Reviewing staged changes...[/bold]", spinner="dots"):
         try:
-            review_result = reviewer.review_diff(diff, model=model)
+            review_result = reviewer.review_diff(diff, model=model, lang=lang)
         except RuntimeError as exc:
             console.print(f"[red]Error:[/red] {exc}")
             raise typer.Exit(0)  # Don't block commit on tool errors
@@ -79,13 +83,22 @@ def install_hook(
         False, "--block-on-high",
         help="Block commits when HIGH severity issues are found.",
     ),
+    model: str = typer.Option(
+        "gemini-2.5-flash", "--model", "-m",
+        help="Gemini model the hook will use for review.",
+    ),
+    lang: str = typer.Option(
+        "en", "--lang", "-l",
+        help="Language for review output: 'en' (English) or 'ko' (Korean).",
+    ),
 ):
     """Install the pre-commit hook in the current git repository."""
     from code_reviewer import hook
 
     try:
-        path = hook.install(block_on_high=block_on_high)
+        path = hook.install(block_on_high=block_on_high, model=model, lang=lang)
         console.print(f"[green]✓[/green] Pre-commit hook installed: [bold]{path}[/bold]")
+        console.print(f"[dim]  Model: {model}  ·  Language: {lang}[/dim]")
         if block_on_high:
             console.print("[yellow]  Commits will be blocked on HIGH severity issues.[/yellow]")
     except RuntimeError as exc:
