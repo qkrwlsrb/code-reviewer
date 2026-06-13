@@ -193,7 +193,25 @@ class TestReviewDiff:
         # 1 initial + 3 retries = 4 total attempts
         assert mock_client.models.generate_content.call_count == 4
 
-    def test_non_429_error_not_retried(self, monkeypatch):
+    def test_retries_on_503_then_succeeds(self, monkeypatch):
+        monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+        from google.genai.errors import ClientError
+
+        ok_response = MagicMock()
+        ok_response.text = json.dumps({"summary": "ok", "issues": []})
+
+        err = ClientError(503, {"error": {"code": 503, "message": "unavailable"}})
+        mock_client = MagicMock()
+        mock_client.models.generate_content.side_effect = [err, ok_response]
+
+        with patch("code_reviewer.reviewer.genai.Client", return_value=mock_client), \
+             patch("code_reviewer.reviewer.time.sleep") as mock_sleep:
+            result = review_diff("diff")
+
+        assert result.summary == "ok"
+        assert mock_sleep.call_count == 1
+
+    def test_non_retryable_error_not_retried(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "test-key")
         from google.genai.errors import ClientError
 

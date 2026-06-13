@@ -117,7 +117,7 @@ def review_diff(diff: str, model: str = "gemini-2.5-flash") -> ReviewResult:
             )
             break
         except ClientError as e:
-            if e.code == 429 and attempt < MAX_RETRIES:
+            if e.code in (429, 503) and attempt < MAX_RETRIES:
                 time.sleep(_RETRY_BACKOFF[attempt])
             else:
                 raise
