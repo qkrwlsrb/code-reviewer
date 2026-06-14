@@ -1,5 +1,9 @@
 # code-reviewer
 
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Gemini](https://img.shields.io/badge/AI-Gemini%202.5%20Flash-orange)
+
 **언어 선택 · Language**  
 [한국어](#한국어) · [English](#english)
 
@@ -8,6 +12,10 @@
 ## 한국어
 
 AI 기반 터미널 코드 리뷰어. staged된 git 변경사항을 Google Gemini로 분석해 커밋 전에 보안 취약점, 버그, 코드 품질 문제를 알려줍니다.
+
+### 배경
+
+코드를 작성하다 보면 커밋 직전에 실수를 놓치는 경우가 종종 있습니다. 팀 리뷰 전에 보안 취약점이나 버그를 먼저 걸러주는 자동화 도구가 필요하다고 생각해 만들었습니다. 별도 서버 없이 터미널에서 바로 동작하고, Git pre-commit 훅으로 연결하면 추가 작업 없이 커밋마다 자동으로 실행됩니다.
 
 ### 기능
 
@@ -146,6 +154,47 @@ cr hook-status
 | **LOW** | 사소한 나쁜 관행, 중복 코드, 불명확한 네이밍 | 고려 |
 | **INFO** | 선택적 개선 사항, 스타일 제안 | 선택 사항 |
 
+### 동작 원리
+
+```
+git add <파일>
+    │
+    ▼
+git diff --staged  →  diff 텍스트 추출 (120 KB 초과 시 자동 트림)
+    │
+    ▼
+Google Gemini 2.5 Flash  →  JSON 형식으로 이슈 분석
+    │
+    ▼
+심각도별 파싱 (HIGH / MEDIUM / LOW / INFO)
+    │
+    ▼
+Rich 라이브러리로 터미널 렌더링
+    │
+    ▼
+--block-on-high 옵션: HIGH 이슈 존재 시 exit code 1 → 커밋 차단
+```
+
+### 기술 스택
+
+| 기술 | 역할 |
+|---|---|
+| **Python 3.11+** | 메인 언어 |
+| **Google Gemini 2.5 Flash** (`google-genai`) | AI 코드 분석 엔진 |
+| **Typer** | CLI 프레임워크 |
+| **Rich** | 터미널 렌더링 |
+| **Hatchling** | 패키징 및 빌드 |
+
+### 프로젝트 구조
+
+```
+src/code_reviewer/
+├── cli.py        # Typer CLI 진입점 (cr 명령어 정의)
+├── reviewer.py   # Gemini API 호출 및 분석 로직
+├── display.py    # Rich 기반 터미널 출력
+└── hook.py       # pre-commit 훅 설치·제거·상태 확인
+```
+
 ### 개발
 
 ```sh
@@ -153,11 +202,19 @@ pip install -e ".[dev]"
 pytest
 ```
 
+### 라이선스
+
+MIT
+
 ---
 
 ## English
 
 AI-powered code reviewer that runs in your terminal. Analyzes staged git changes via Google Gemini and surfaces security vulnerabilities, bugs, and quality issues before you commit.
+
+### Background
+
+It's easy to overlook mistakes right before committing, especially without a second pair of eyes. I built this tool to catch security issues and bugs before they reach team review — no extra server required. Hook it into Git's pre-commit and it runs automatically every time you commit.
 
 ### Features
 
@@ -294,6 +351,47 @@ cr hook-status
 | **MEDIUM** | Logic bugs, dangerous API misuse, performance pitfalls, missing validation | Recommended fix |
 | **LOW** | Minor bad practices, redundant code, unclear naming | Consider fixing |
 | **INFO** | Optional improvements, stylistic suggestions | Optional |
+
+### How it works
+
+```
+git add <files>
+    │
+    ▼
+git diff --staged  →  extract diff text (auto-trimmed at 120 KB)
+    │
+    ▼
+Google Gemini 2.5 Flash  →  returns structured JSON analysis
+    │
+    ▼
+parse by severity (HIGH / MEDIUM / LOW / INFO)
+    │
+    ▼
+render in terminal via Rich
+    │
+    ▼
+--block-on-high: exit code 1 on HIGH issues → commit blocked
+```
+
+### Tech stack
+
+| Technology | Role |
+|---|---|
+| **Python 3.11+** | Core language |
+| **Google Gemini 2.5 Flash** (`google-genai`) | AI analysis engine |
+| **Typer** | CLI framework |
+| **Rich** | Terminal rendering |
+| **Hatchling** | Build and packaging |
+
+### Project structure
+
+```
+src/code_reviewer/
+├── cli.py        # Typer entry point (defines cr commands)
+├── reviewer.py   # Gemini API calls and analysis logic
+├── display.py    # Rich-based terminal output
+└── hook.py       # pre-commit hook install / remove / status
+```
 
 ### Development
 
